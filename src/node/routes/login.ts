@@ -3,6 +3,7 @@ import { promises as fs } from "fs"
 import { RateLimiter as Limiter } from "limiter"
 import * as path from "path"
 import { CookieKeys } from "../../common/http"
+import { AuthType } from "../cli"
 import { rootPath } from "../constants"
 import { authenticated, getCookieOptions, redirect, replaceTemplates } from "../http"
 import i18n from "../i18n"
@@ -57,6 +58,12 @@ const limiter = new RateLimiter()
 export const router = Router()
 
 router.use(async (req, res, next) => {
+  // For token authentication, don't redirect if already authenticated
+  // to avoid redirect loops - let the login page handle token auth
+  if (req.args.auth === AuthType.Token) {
+    return next()
+  }
+
   const to = (typeof req.query.to === "string" && req.query.to) || "/"
   if (await authenticated(req)) {
     return redirect(req, res, to, { to: undefined })
@@ -117,5 +124,51 @@ router.post<{}, string, { password?: string; base?: string } | undefined, { to?:
   } catch (error: any) {
     const renderedHtml = await getRoot(req, error)
     res.send(renderedHtml)
+  }
+})
+
+// Token authentication endpoint
+router.post<{}, any, { accessToken?: string; refreshToken?: string }, { to?: string }>("/token", async (req, res) => {
+  const accessToken = sanitizeString(req.body?.accessToken)
+  const refreshToken = sanitizeString(req.body?.refreshToken)
+
+  try {
+    if (!accessToken || !refreshToken) {
+      res.status(400).json({
+        success: false,
+        error: "Missing access token or refresh token",
+      })
+      return
+    }
+
+    // Import the token validation function
+    const { validateTokensFromCookies } = await import("../util")
+    const isValid = validateTokensFromCookies(accessToken, refreshToken)
+
+    if (isValid) {
+      // Set token cookies
+      res.cookie(CookieKeys.AccessToken, accessToken, getCookieOptions(req))
+      res.cookie(CookieKeys.RefreshToken, refreshToken, getCookieOptions(req))
+      // Also set session cookie for backward compatibility
+      res.cookie(CookieKeys.Session, accessToken, getCookieOptions(req))
+
+      const to = (typeof req.query.to === "string" && req.query.to) || "/"
+      res.json({
+        success: true,
+        redirect: to,
+      })
+      return
+    }
+
+    res.status(401).json({
+      success: false,
+      error: "Invalid tokens",
+    })
+  } catch (error: any) {
+    console.error("Token authentication error:", error)
+    res.status(500).json({
+      success: false,
+      error: "Internal server error during token authentication",
+    })
   }
 })

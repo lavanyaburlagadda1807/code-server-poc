@@ -255,7 +255,7 @@ describe("parser", () => {
 
   it("should error if value is invalid", () => {
     expect(() => parse(["--port", "foo"])).toThrowError(/--port must be a number/)
-    expect(() => parse(["--auth", "invalid"])).toThrowError(/--auth valid values: \[password, none\]/)
+    expect(() => parse(["--auth", "invalid"])).toThrowError(/--auth valid values: \[password, none, token\]/)
     expect(() => parse(["--log", "invalid"])).toThrowError(/--log valid values: \[trace, debug, info, warn, error\]/)
   })
 
@@ -1022,7 +1022,9 @@ describe("optionDescriptions", () => {
     const opts: Partial<Options<Required<UserProvidedArgs>>> = {
       auth: { type: AuthType, description: "The type of authentication to use." },
     }
-    expect(optionDescriptions(opts)).toStrictEqual(["  --auth The type of authentication to use. [password, none]"])
+    expect(optionDescriptions(opts)).toStrictEqual([
+      "  --auth The type of authentication to use. [password, none, token]",
+    ])
   })
 
   it("should show if an option is deprecated", () => {

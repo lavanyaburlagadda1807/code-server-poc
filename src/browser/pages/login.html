@@ -8,55 +8,493 @@
     />
     <meta
       http-equiv="Content-Security-Policy"
-      content="style-src 'self'; script-src 'self' 'unsafe-inline'; manifest-src 'self'; img-src 'self' data:; font-src 'self' data:;"
+      content="style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self' 'unsafe-inline'; manifest-src 'self'; img-src 'self' data:; font-src 'self' data: https://fonts.gstatic.com;"
     />
     <meta name="color-scheme" content="light dark" />
     <title>{{I18N_LOGIN_TITLE}}</title>
     <link rel="icon" href="{{CS_STATIC_BASE}}/src/browser/media/favicon-dark-support.svg" />
     <link rel="alternate icon" href="{{CS_STATIC_BASE}}/src/browser/media/favicon.ico" />
     <link rel="manifest" href="{{BASE}}/manifest.json" crossorigin="use-credentials" />
-    <link rel="apple-touch-icon" sizes="192x192" href="{{CS_STATIC_BASE}}/src/browser/media/pwa-icon-192.png" />
-    <link rel="apple-touch-icon" sizes="512x512" href="{{CS_STATIC_BASE}}/src/browser/media/pwa-icon-512.png" />
-    <link href="{{CS_STATIC_BASE}}/src/browser/pages/global.css" rel="stylesheet" />
-    <link href="{{CS_STATIC_BASE}}/src/browser/pages/login.css" rel="stylesheet" />
-    <meta id="coder-options" data-settings="{{OPTIONS}}" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{CS_STATIC_BASE}}/src/browser/pages/global.css" />
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+      }
+
+      .auth-container {
+        width: 100%;
+        max-width: 400px;
+        margin: 20px;
+      }
+
+      .auth-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        border-radius: 20px;
+        padding: 40px 32px;
+        box-shadow:
+          0 8px 32px rgba(0, 0, 0, 0.12),
+          0 4px 16px rgba(0, 0, 0, 0.08),
+          0 2px 8px rgba(0, 0, 0, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .auth-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      }
+
+      .logo-section {
+        margin-bottom: 32px;
+      }
+
+      .logo {
+        width: 56px;
+        height: 56px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 16px;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+      }
+
+      .logo svg {
+        width: 28px;
+        height: 28px;
+        fill: white;
+      }
+
+      .auth-title {
+        font-size: 24px;
+        font-weight: 700;
+        color: #1a1a1a;
+        margin: 0 0 8px 0;
+        letter-spacing: -0.02em;
+      }
+
+      .auth-subtitle {
+        font-size: 15px;
+        color: #6b7280;
+        margin: 0;
+        font-weight: 400;
+        line-height: 1.5;
+      }
+
+      .loading-section {
+        margin: 32px 0;
+      }
+
+      .loading-spinner {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 24px;
+      }
+
+      .dots-loader {
+        display: flex;
+        gap: 8px;
+      }
+
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        animation: dotPulse 1.4s infinite ease-in-out;
+      }
+
+      .dot:nth-child(1) { animation-delay: -0.32s; }
+      .dot:nth-child(2) { animation-delay: -0.16s; }
+      .dot:nth-child(3) { animation-delay: 0s; }
+
+      @keyframes dotPulse {
+        0%, 80%, 100% {
+          transform: scale(0.6);
+          opacity: 0.5;
+        }
+        40% {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+
+      .status-message {
+        font-size: 16px;
+        font-weight: 500;
+        color: #374151;
+        margin: 0;
+        letter-spacing: -0.01em;
+      }
+
+      .error-section {
+        margin: 32px 0;
+      }
+
+      .error-card {
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 24px;
+      }
+
+      .error-icon {
+        width: 20px;
+        height: 20px;
+        margin: 0 auto 12px;
+        background: #ef4444;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .error-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #dc2626;
+        margin: 0 0 8px 0;
+      }
+
+      .error-message {
+        font-size: 14px;
+        color: #7f1d1d;
+        margin: 0;
+        line-height: 1.5;
+      }
+
+      .retry-button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        padding: 12px 24px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-family: inherit;
+      }
+
+      .retry-button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+      }
+
+      .retry-button:active {
+        transform: translateY(0);
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      .footer-text {
+        margin-top: 32px;
+        font-size: 13px;
+        color: #9ca3af;
+        line-height: 1.4;
+      }
+
+      /* Dark mode support */
+      @media (prefers-color-scheme: dark) {
+        body {
+          background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        }
+
+        .auth-card {
+          background: rgba(30, 30, 30, 0.95);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .auth-title {
+          color: #ffffff;
+        }
+
+        .auth-subtitle {
+          color: #9ca3af;
+        }
+
+        .status-message {
+          color: #d1d5db;
+        }
+
+        .error-card {
+          background: rgba(239, 68, 68, 0.1);
+          border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .error-title {
+          color: #f87171;
+        }
+
+        .error-message {
+          color: #fca5a5;
+        }
+
+        .footer-text {
+          color: #6b7280;
+        }
+      }
+
+      /* Mobile responsive */
+      @media (max-width: 480px) {
+        .auth-card {
+          margin: 16px;
+          padding: 32px 24px;
+          border-radius: 16px;
+        }
+
+        .auth-title {
+          font-size: 22px;
+        }
+
+        .logo {
+          width: 48px;
+          height: 48px;
+        }
+
+        .logo svg {
+          width: 24px;
+          height: 24px;
+        }
+      }
+    </style>
   </head>
   <body>
-    <div class="center-container">
-      <div class="card-box">
-        <div class="header">
-          <h1 class="main">{{WELCOME_TEXT}}</h1>
-          <div class="sub">{{I18N_LOGIN_BELOW}} {{PASSWORD_MSG}}</div>
+    <div class="auth-container">
+      <div class="auth-card">
+        <div class="logo-section">
+          <div class="logo">
+            <svg viewBox="0 0 24 24">
+              <path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0L19.2 12l-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/>
+            </svg>
+          </div>
+          <h1 class="auth-title">Code Server</h1>
+          <p class="auth-subtitle">Secure development environment</p>
         </div>
-        <div class="content">
-          <form class="login-form" method="post">
-            <input class="user" type="text" autocomplete="username" />
-            <input id="base" type="hidden" name="base" value="{{BASE}}" />
-            <input id="href" type="hidden" name="href" value="" />
-            <div class="field">
-              <input
-                required
-                autofocus
-                class="password"
-                type="password"
-                placeholder="{{I18N_PASSWORD_PLACEHOLDER}}"
-                name="password"
-                autocomplete="current-password"
-              />
-              <input class="submit -button" value="{{I18N_SUBMIT}}" type="submit" />
+
+        <div id="loading-state">
+          <div class="loading-section">
+            <div class="loading-spinner">
+              <div class="dots-loader">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+              </div>
             </div>
-            {{ERROR}}
-          </form>
+            <p class="status-message">Initializing authentication...</p>
+          </div>
+        </div>
+
+        <div id="error-state" class="hidden">
+          <div class="error-section">
+            <div class="error-card">
+              <div class="error-icon">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="white">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                </svg>
+              </div>
+              <h3 class="error-title">Authentication Failed</h3>
+              <p class="error-message">Unable to authenticate. Please check your configuration.</p>
+            </div>
+            <button class="retry-button" onclick="location.reload()">Retry Authentication</button>
+          </div>
+        </div>
+
+        <div class="footer-text">
+          Please ensure your parent application is configured to send authentication tokens.
         </div>
       </div>
     </div>
+
     <script>
-      // Inform the backend about the path since the proxy might have rewritten
-      // it out of the headers and cookies must be set with absolute paths.
-      const el = document.getElementById("href")
-      if (el) {
-        el.value = location.href
+      class TokenAuthenticator {
+        constructor() {
+          this.timeout = 10000; // 10 seconds
+          this.isAuthenticated = false;
+          this.timeoutId = null;
+
+          this.init();
+        }
+
+        init() {
+          // Check if we're in an iframe
+          const isInIframe = window.self !== window.top;
+
+          if (isInIframe) {
+            this.handleIframeAuth();
+          } else {
+            this.handleStandaloneAuth();
+          }
+        }
+
+        handleIframeAuth() {
+          this.updateStatus("Waiting for authentication tokens...");
+
+          // Set up timeout
+          this.timeoutId = setTimeout(() => {
+            if (!this.isAuthenticated) {
+              this.showError("Authentication timeout. Please ensure the parent application is configured correctly.");
+            }
+          }, this.timeout);
+
+          // Check for existing tokens in cookies first
+          if (this.checkExistingTokens()) {
+            return;
+          }
+
+          // Listen for postMessage from parent
+          window.addEventListener('message', (event) => {
+            if (event.data && event.data.type === 'AUTH_TOKENS') {
+              this.handleTokens(event.data.accessToken, event.data.refreshToken);
+            }
+          });
+
+          // Notify parent that we're ready to receive tokens
+          if (window.parent) {
+            window.parent.postMessage({ type: 'TOKEN_AUTH_READY' }, '*');
+          }
+        }
+
+        handleStandaloneAuth() {
+          // For standalone mode, just check cookies
+          if (!this.checkExistingTokens()) {
+            this.showError("This application requires token authentication when used in standalone mode.");
+          }
+        }
+
+        checkExistingTokens() {
+          const accessToken = this.getCookie('code-server-access-token');
+          const refreshToken = this.getCookie('code-server-refresh-token');
+
+          if (accessToken && refreshToken) {
+            this.updateStatus("Validating existing session...");
+            this.authenticateWithServer(accessToken, refreshToken);
+            return true;
+          }
+
+          return false;
+        }
+
+        handleTokens(accessToken, refreshToken) {
+          if (this.isAuthenticated) return;
+
+          if (!accessToken || !refreshToken) {
+            this.showError("Invalid tokens received from parent application.");
+            return;
+          }
+
+          this.updateStatus("Authenticating with server...");
+          this.authenticateWithServer(accessToken, refreshToken);
+        }
+
+        async authenticateWithServer(accessToken, refreshToken) {
+          try {
+            const response = await fetch('/login/token', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                accessToken: accessToken,
+                refreshToken: refreshToken
+              })
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+              this.isAuthenticated = true;
+              if (this.timeoutId) {
+                clearTimeout(this.timeoutId);
+              }
+
+              this.updateStatus("Authentication successful! Redirecting...");
+
+              // Redirect after a brief delay
+              setTimeout(() => {
+                const url = new URL(window.location);
+                const to = url.searchParams.get('to') || result.redirect || '/';
+
+                // Ensure we have a proper redirect URL
+                if (to.startsWith('./')) {
+                  window.location.href = to.substring(1); // Remove the dot
+                } else if (to.startsWith('/')) {
+                  window.location.href = to;
+                } else {
+                  window.location.href = '/'; // Default to root
+                }
+              }, 1500);
+            } else {
+              this.showError(result.error || 'Authentication failed');
+            }
+          } catch (error) {
+            this.showError(`Network error: ${error.message}`);
+          }
+        }
+
+        getCookie(name) {
+          const value = `; ${document.cookie}`;
+          const parts = value.split(`; ${name}=`);
+          if (parts.length === 2) return parts.pop().split(';').shift();
+          return null;
+        }
+
+        updateStatus(message) {
+          const statusElement = document.querySelector('.status-message');
+          if (statusElement) {
+            statusElement.textContent = message;
+          }
+        }
+
+        showError(message) {
+          const loadingState = document.getElementById('loading-state');
+          const errorState = document.getElementById('error-state');
+          const errorMessage = document.querySelector('.error-message');
+
+          if (loadingState) loadingState.classList.add('hidden');
+          if (errorState) errorState.classList.remove('hidden');
+          if (errorMessage) {
+            errorMessage.textContent = message;
+          }
+
+          if (this.timeoutId) {
+            clearTimeout(this.timeoutId);
+          }
+        }
       }
+
+      // Initialize token authenticator when DOM is loaded
+      document.addEventListener('DOMContentLoaded', () => {
+        new TokenAuthenticator();
+      });
     </script>
   </body>
 </html>

@@ -1,0 +1,1418 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no"
+    />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self' 'unsafe-inline'; manifest-src 'self'; img-src 'self' data:; font-src 'self' data: https://fonts.gstatic.com;"
+    />
+    <meta name="color-scheme" content="light dark" />
+    <title>IDE Client - Code Server</title>
+    <link rel="icon" href="{{CS_STATIC_BASE}}/src/browser/media/favicon-dark-support.svg" />
+    <link rel="alternate icon" href="{{CS_STATIC_BASE}}/src/browser/media/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="{{CS_STATIC_BASE}}/src/browser/pages/global.css" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          "Inter",
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          "Roboto",
+          "Oxygen",
+          "Ubuntu",
+          "Cantarell",
+          "Fira Sans",
+          "Droid Sans",
+          "Helvetica Neue",
+          sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        background-color: #ffffff;
+        color: #1f2937;
+        height: 100vh;
+        width: 100vw;
+        overflow: hidden;
+      }
+
+      /* Loading Spinner */
+      .loading-container {
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+      }
+
+      .spinner {
+        width: 2rem;
+        height: 2rem;
+        border: 4px solid #e5e7eb;
+        border-top: 4px solid #3b82f6;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .loading-text {
+        color: #6b7280;
+        font-size: 1rem;
+      }
+
+      /* Card Component */
+      .card-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 50;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+      }
+
+      .card {
+        background-color: white;
+        border-radius: 0.5rem;
+        box-shadow:
+          0 20px 25px -5px rgba(0, 0, 0, 0.1),
+          0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        padding: 1.5rem;
+        margin: 1rem;
+        max-width: 28rem;
+        width: 100%;
+        position: relative;
+        transform: scale(1);
+        transition: all 0.2s ease-in-out;
+      }
+
+      .card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+      }
+
+      .card-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #111827;
+      }
+
+      .close-button {
+        color: #9ca3af;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0.25rem;
+        transition: color 0.2s ease-in-out;
+      }
+
+      .close-button:hover {
+        color: #6b7280;
+      }
+
+      /* Button Component */
+      .btn {
+        font-family: "Inter", sans-serif;
+        font-weight: 500;
+        border-radius: 0.5rem;
+        transition: all 0.2s ease-in-out;
+        outline: none;
+        border: none;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        text-decoration: none;
+      }
+
+      .btn:focus {
+        outline: 2px solid transparent;
+        outline-offset: 2px;
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+      }
+
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .btn-primary {
+        background-color: #3b82f6;
+        color: white;
+        padding: 0.5rem 1rem;
+        font-size: 1rem;
+      }
+
+      .btn-primary:hover:not(:disabled) {
+        background-color: #2563eb;
+      }
+
+      .btn-secondary {
+        background-color: #f3f4f6;
+        color: #374151;
+        border: 1px solid #d1d5db;
+        padding: 0.5rem 1rem;
+        font-size: 1rem;
+      }
+
+      .btn-secondary:hover:not(:disabled) {
+        background-color: #e5e7eb;
+      }
+
+      .btn-danger {
+        background-color: #dc2626;
+        color: white;
+        padding: 0.5rem 1rem;
+        font-size: 1rem;
+      }
+
+      .btn-danger:hover:not(:disabled) {
+        background-color: #b91c1c;
+      }
+
+      /* IDE Layout */
+      .ide-layout {
+        height: 100vh;
+        display: flex;
+      }
+
+      .ide-sidebar {
+        width: 16rem;
+        background-color: #1f2937;
+        color: white;
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .ide-sidebar h2 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+      }
+
+      .session-link {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #d1d5db;
+        text-decoration: none;
+        font-size: 0.875rem;
+        padding: 0.5rem;
+        border-radius: 0.25rem;
+        transition: color 0.2s ease-in-out;
+      }
+
+      .session-link:hover {
+        color: white;
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+
+      .stop-ide-section {
+        margin-top: auto;
+      }
+
+      .stop-ide-btn {
+        width: 100%;
+        background-color: #dc2626;
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        border: none;
+        cursor: pointer;
+        transition: background-color 0.2s ease-in-out;
+      }
+
+      .stop-ide-btn:hover {
+        background-color: #b91c1c;
+      }
+
+      .ide-main {
+        flex: 1;
+        background-color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .ide-ready-content {
+        text-align: center;
+      }
+
+      .ide-ready-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #111827;
+        margin-bottom: 1rem;
+      }
+
+      .ide-ready-description {
+        color: #6b7280;
+        margin-bottom: 1rem;
+      }
+
+      .inactivity-timer {
+        font-size: 0.875rem;
+        color: #9ca3af;
+      }
+
+      /* Status Icons */
+      .status-icon {
+        width: 3rem;
+        height: 3rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+      }
+
+      .status-icon.error {
+        background-color: #fef2f2;
+        color: #dc2626;
+      }
+
+      .status-icon.warning {
+        background-color: #fffbeb;
+        color: #d97706;
+      }
+
+      .status-icon.info {
+        background-color: #eff6ff;
+        color: #3b82f6;
+      }
+
+      .status-icon.success {
+        background-color: #f0fdf4;
+        color: #16a34a;
+      }
+
+      .status-icon.gray {
+        background-color: #f9fafb;
+        color: #6b7280;
+      }
+
+      /* Mobile styles */
+      @media (max-width: 768px) {
+        .ide-layout {
+          flex-direction: column;
+        }
+
+        .ide-sidebar {
+          width: 100%;
+          height: auto;
+          order: 2;
+        }
+
+        .card {
+          margin: 0.5rem;
+          max-width: calc(100vw - 1rem);
+        }
+      }
+
+      /* Hidden class */
+      .hidden {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <!-- Loading State -->
+      <div id="loading-state" class="loading-container">
+        <div class="spinner"></div>
+        <div id="loading-message" class="loading-text">Loading...</div>
+      </div>
+
+      <!-- Error Cards and Status Cards will be dynamically inserted here -->
+      <div id="modal-container"></div>
+
+      <!-- IDE Layout (hidden initially) -->
+      <div id="ide-layout" class="ide-layout hidden">
+        <div class="ide-sidebar">
+          <div>
+            <h2>IDE</h2>
+
+            <!-- Session URL Link -->
+            <div id="session-url-section" class="hidden">
+              <a href="#" id="session-url-link" class="session-link">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                  />
+                </svg>
+                <span>Share Session</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- Stop IDE Button -->
+          <div class="stop-ide-section">
+            <button id="stop-ide-btn" class="stop-ide-btn">Stop IDE</button>
+          </div>
+        </div>
+
+        <div class="ide-main">
+          <div class="ide-ready-content">
+            <h1 class="ide-ready-title">IDE Ready</h1>
+            <p class="ide-ready-description">Your development environment is ready to use.</p>
+            <div id="inactivity-timer" class="inactivity-timer hidden"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // IDE Client Application Logic
+      class IDEClient {
+        constructor() {
+          this.state = {
+            currentState: "loading",
+            sessionData: null,
+            webSocketDetails: null,
+            sessionStatus: null,
+            error: null,
+            isInIframe: false,
+            isPolling: false,
+            pollInterval: null,
+            inactivityTimer: null,
+            inactivityStartTime: null,
+          }
+
+          this.API_BASE_URLS = {
+            beta: "https://nkb-backend-ccbp-beta.earlywave.in",
+            production: "https://nkb-backend-ccbp-prod-apis.ccbp.in/api",
+          }
+
+          this.SESSION_STATUS = {
+            CREATING: "CREATING",
+            INITIALIZING_DROP: "INITIALIZING_DROP",
+            UNHEALTHY: "UNHEALTHY",
+            READY: "READY",
+            STOPPING: "STOPPING",
+            STOPPED: "STOPPED",
+            ACTIVE_SESSION_EXISTS: "ACTIVE_SESSION_EXISTS",
+          }
+
+          this.STOP_REASONS = {
+            USER_FORCE_STOP: "USER_FORCE_STOP",
+            USER_INACTIVE: "USER_INACTIVE",
+          }
+
+          this.FINAL_STATES = [this.SESSION_STATUS.READY, this.SESSION_STATUS.STOPPED, this.SESSION_STATUS.UNHEALTHY]
+
+          this.environment = "beta" // Default to beta
+          this.pollingInterval = 10000 // 10 seconds
+          this.inactivityTimeout = 30 * 60 * 1000 // 30 minutes
+
+          this.init()
+        }
+
+        init() {
+          console.log("IDEClient: Initializing...")
+          console.log("IDEClient: Current cookies:", document.cookie)
+
+          // Check if user was redirected from VS Code
+          const urlParams = new URLSearchParams(window.location.search)
+          const redirectedFrom = urlParams.get("to")
+          if (redirectedFrom) {
+            console.log("IDEClient: User was redirected from:", redirectedFrom)
+          }
+
+          this.detectDevice()
+          this.setupEventListeners()
+          this.initializeApplication()
+        }
+
+        detectDevice() {
+          const userAgent = navigator.userAgent.toLowerCase()
+          const width = window.innerWidth
+
+          this.isMobile = /android|webos|iphone|ipod|blackberry|iemobile|opera mini/i.test(userAgent) || width < 768
+          this.isInIframe = window !== window.parent
+        }
+
+        setupEventListeners() {
+          // PostMessage listener
+          window.addEventListener("message", (event) => {
+            this.handleParentMessage(event)
+          })
+
+          // Stop IDE button
+          document.getElementById("stop-ide-btn").addEventListener("click", () => {
+            this.showStopConfirmation()
+          })
+
+          // Session URL link
+          document.getElementById("session-url-link").addEventListener("click", (e) => {
+            e.preventDefault()
+            this.showSessionURLModal()
+          })
+
+          // Activity tracking for inactivity timer
+          const activityEvents = ["mousedown", "mousemove", "keypress", "scroll", "touchstart", "click"]
+          activityEvents.forEach((event) => {
+            document.addEventListener(event, () => this.resetInactivityTimer(), true)
+          })
+        }
+
+        initializeApplication() {
+          console.log("IDEClient: Initializing application", {
+            isMobile: this.isMobile,
+            isInIframe: this.isInIframe,
+          })
+
+          if (this.isMobile) {
+            console.log("IDEClient: Mobile device detected, not supported")
+            this.setState("mobile_not_supported")
+            return
+          }
+
+          // Always try to use stored tokens first, regardless of iframe status
+          console.log("IDEClient: Checking for stored tokens in cookies...")
+
+          // Validate auth data first
+          if (!this.validateAndCleanAuthData()) {
+            console.log("IDEClient: Auth data validation failed, proceeding with test session")
+            this.createTestSessionAndProceed()
+            return
+          }
+
+          const tokens = this.getStoredTokens()
+
+          if (tokens.access_token && tokens.refresh_token) {
+            console.log("IDEClient: Found valid stored tokens, attempting to initialize session properly")
+            this.initializeSessionFromStorage()
+            return
+          }
+
+          // For local testing: If no tokens, create test session data and proceed
+          console.log("IDEClient: No tokens found, creating test session for local testing")
+          this.createTestSessionAndProceed()
+
+          /*
+          // Original logic - commented out for local testing
+          // If no tokens available, check if we're in iframe for parent communication
+          if (this.isInIframe) {
+            console.log("IDEClient: No tokens found, in iframe - sending IDE_WINDOW_LOADED message to parent")
+            this.sendMessageToParent("IDE_WINDOW_LOADED")
+            this.setState("waiting_for_parent")
+          } else {
+            console.log("IDEClient: No tokens found, not in iframe - showing no_auth state")
+            this.setState("no_auth")
+          }
+          */
+        }
+
+        initializeSessionFromStorage() {
+          console.log("IDEClient: Attempting to initialize session from stored data")
+          const storedSessionDetails = this.getCookie("ide_session_details")
+          const tokens = this.getStoredTokens()
+
+          console.log("IDEClient: Storage check results", {
+            hasStoredSessionDetails: !!storedSessionDetails,
+            hasTokens: !!(tokens.access_token && tokens.refresh_token),
+            storedSessionDetailsLength: storedSessionDetails ? storedSessionDetails.length : 0,
+          })
+
+          if (storedSessionDetails) {
+            try {
+              const sessionDetails = JSON.parse(decodeURIComponent(storedSessionDetails))
+              console.log("IDEClient: Found stored session details", sessionDetails)
+              this.state.webSocketDetails = sessionDetails
+
+              if (sessionDetails.status === this.SESSION_STATUS.READY) {
+                console.log("IDEClient: Session is ready, navigating to VS Code")
+                this.navigateToVSCode()
+              } else {
+                console.log("IDEClient: Session not ready, checking if we have tokens to create new session")
+                if (tokens.access_token && tokens.refresh_token) {
+                  // Try to create a new session with stored tokens
+                  this.createSessionWithStoredTokens()
+                } else {
+                  console.log("IDEClient: No tokens available for session creation")
+                  this.setState("no_auth")
+                }
+              }
+            } catch (error) {
+              console.error("IDEClient: Failed to parse stored session details", error)
+              this.setState("no_auth")
+            }
+          } else {
+            console.log("IDEClient: No stored session details found, checking for tokens")
+            if (tokens.access_token && tokens.refresh_token) {
+              console.log("IDEClient: Tokens found, attempting to create session")
+              // Try to create a new session with stored tokens
+              this.createSessionWithStoredTokens()
+            } else {
+              console.log("IDEClient: No tokens available for session creation")
+              this.setState("no_auth")
+            }
+          }
+        }
+
+        createSessionWithStoredTokens() {
+          console.log("IDEClient: Attempting to create session with stored tokens")
+
+          // Check if we have any session data from cookies
+          const storedSessionDetails = this.getCookie("ide_session_details")
+
+          if (storedSessionDetails) {
+            try {
+              const sessionDetails = JSON.parse(decodeURIComponent(storedSessionDetails))
+              console.log("IDEClient: Found session details in cookies, using them", sessionDetails)
+              this.state.sessionData = {
+                session_id: sessionDetails.session_display_id || sessionDetails.session_id,
+                access_token: this.getCookie("code-server-access-token"),
+                refresh_token: this.getCookie("code-server-refresh-token"),
+                ide_entity_type: "QUESTION", // Default value
+                user_id: "", // Will be populated from API response if needed
+                user_name: "",
+                user_profile_pic_url: "",
+                extra_session_details: "",
+                active_session_id: "",
+                should_show_ide_discussion_new_tag: false,
+                should_show_ide_usage_guide_new_tag: false,
+              }
+              this.initializeSession(false)
+              return
+            } catch (error) {
+              console.error("IDEClient: Failed to parse stored session details", error)
+            }
+          }
+
+          // Create session data from available tokens for testing
+          console.log("IDEClient: Creating session with available tokens")
+          this.state.sessionData = {
+            session_id: "session-" + Date.now(),
+            access_token: this.getCookie("code-server-access-token"),
+            refresh_token: this.getCookie("code-server-refresh-token"),
+            ide_entity_type: "QUESTION",
+            user_id: "user-" + Date.now(),
+            user_name: "Test User",
+            user_profile_pic_url: "",
+            extra_session_details: "",
+            active_session_id: "",
+            should_show_ide_discussion_new_tag: false,
+            should_show_ide_usage_guide_new_tag: false,
+          }
+
+          console.log("IDEClient: Proceeding to initialize session with created data")
+          this.initializeSession(false)
+        }
+
+        setState(newState, data = {}) {
+          console.log("IDEClient: State change", { from: this.state.currentState, to: newState, data })
+          this.state.currentState = newState
+          this.renderCurrentState(data)
+        }
+
+        renderCurrentState(data = {}) {
+          const loadingState = document.getElementById("loading-state")
+          const ideLayout = document.getElementById("ide-layout")
+          const modalContainer = document.getElementById("modal-container")
+
+          // Hide all by default
+          loadingState.classList.add("hidden")
+          ideLayout.classList.add("hidden")
+          modalContainer.innerHTML = ""
+
+          switch (this.state.currentState) {
+            case "loading":
+            case "waiting_for_parent":
+            case "initializing_session":
+            case "polling_status":
+              loadingState.classList.remove("hidden")
+              document.getElementById("loading-message").textContent = this.getLoadingMessage(this.state.currentState)
+              break
+
+            case "mobile_not_supported":
+              this.showStatusCard("mobile_not_supported", "IDE not available on mobile. Please open in desktop.")
+              break
+
+            case "no_auth":
+              this.showErrorCard(
+                "NxtWave Details Not Available",
+                "We are unable to get NxtWave details. Please log in through the learning platform and open the IDE.",
+                true,
+                () => this.retryInitialization(),
+              )
+              break
+
+            case "active_session_exists":
+              this.showStatusCard("active_session_exists", "Another Active Session Exists", "Force Start", () =>
+                this.initializeSession(true),
+              )
+              break
+
+            case "stopping":
+              this.showStatusCard("stopping", "IDE stopping.")
+              break
+
+            case "stopped":
+              this.showStatusCard("stopped", "IDE stopped", "Restart", () => this.initializeSession())
+              break
+
+            case "error":
+              this.showErrorCard("Error", this.state.error || "An unexpected error occurred", true, () =>
+                this.initializeSession(),
+              )
+              break
+
+            case "ready":
+              console.log("IDE session is ready, navigating to VS Code interface...")
+              this.navigateToVSCode()
+              break
+          }
+        }
+
+        getLoadingMessage(state) {
+          switch (state) {
+            case "loading":
+              return "Loading..."
+            case "waiting_for_parent":
+              return "Loading..."
+            case "initializing_session":
+              return "Initializing IDE session..."
+            case "polling_status":
+              return "Setting up your IDE environment..."
+            default:
+              return "Loading..."
+          }
+        }
+
+        showErrorCard(title, message, showRetry = true, retryCallback = null) {
+          const modal = this.createModal(`
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">${title}</h2>
+                        </div>
+                        <div style="text-align: center;">
+                            <div class="status-icon error">
+                                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                </svg>
+                            </div>
+                            <p style="color: #374151; margin-bottom: 1.5rem;">${message}</p>
+                            <div style="display: flex; gap: 0.75rem; justify-content: center;">
+                                ${showRetry ? `<button class="btn btn-primary" onclick="ideClient.handleRetry()">Retry</button>` : ""}
+                            </div>
+                        </div>
+                    </div>
+                `)
+
+          this.retryCallback = retryCallback
+        }
+
+        showStatusCard(status, message, actionLabel = null, actionCallback = null) {
+          let iconHtml = ""
+          let iconClass = ""
+
+          switch (status) {
+            case "mobile_not_supported":
+              iconClass = "warning"
+              iconHtml = `<svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>`
+              break
+            case "active_session_exists":
+              iconClass = "info"
+              iconHtml = `<svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>`
+              break
+            case "stopping":
+              iconClass = "warning"
+              iconHtml = `<div class="spinner" style="width: 1.5rem; height: 1.5rem; border-width: 2px;"></div>`
+              break
+            case "stopped":
+              iconClass = "gray"
+              iconHtml = `<svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+                        </svg>`
+              break
+          }
+
+          const modal = this.createModal(`
+                    <div class="card">
+                        <div style="text-align: center;">
+                            <div class="status-icon ${iconClass}">
+                                ${iconHtml}
+                            </div>
+                            <p style="color: #374151; margin-bottom: 1.5rem;">${message}</p>
+                            ${
+                              actionLabel && actionCallback
+                                ? `
+                                <button class="btn btn-primary" onclick="ideClient.handleStatusAction()">${actionLabel}</button>
+                            `
+                                : ""
+                            }
+                        </div>
+                    </div>
+                `)
+
+          this.statusActionCallback = actionCallback
+        }
+
+        navigateToVSCode() {
+          console.log("Navigating to VS Code interface...", this.state.webSocketDetails)
+
+          // Store session details for VS Code access in cookies
+          if (this.state.webSocketDetails) {
+            const sessionData = encodeURIComponent(JSON.stringify(this.state.webSocketDetails))
+            this.setCookie("ide_session_details", sessionData, 24 * 60 * 60 * 1000) // 24 hours
+            console.log("Stored IDE session details in cookies for VS Code access")
+          }
+
+          // Authentication tokens should already be in cookies from storeTokens()
+          const tokens = this.getStoredTokens()
+          if (tokens.access_token && tokens.refresh_token) {
+            console.log("Authentication tokens already available in cookies for VS Code access")
+          }
+
+          // Navigate to VS Code interface
+          const baseUrl = window.location.origin + window.location.pathname.replace(/\/ide-client.*$/, "")
+          const vscodeUrl = `${baseUrl}/vscode`
+
+          console.log("Redirecting to VS Code at:", vscodeUrl)
+          window.location.href = vscodeUrl
+        }
+
+        createModal(content) {
+          const modalContainer = document.getElementById("modal-container")
+          modalContainer.innerHTML = `
+                    <div class="card-overlay">
+                        ${content}
+                    </div>
+                `
+        }
+
+        handleRetry() {
+          if (this.retryCallback) {
+            this.retryCallback()
+          }
+        }
+
+        handleStatusAction() {
+          if (this.statusActionCallback) {
+            this.statusActionCallback()
+          }
+        }
+
+        retryInitialization() {
+          console.log("IDEClient: Retrying initialization...")
+          this.initializeApplication()
+        }
+
+        createTestSessionAndProceed() {
+          console.log("IDEClient: Creating test session data for local testing")
+          // Create minimal session data needed for API calls
+          this.state.sessionData = {
+            session_id: "test-session-" + Date.now(),
+            access_token: "test-access-token",
+            refresh_token: "test-refresh-token",
+            ide_entity_type: "QUESTION",
+            user_id: "test-user",
+            user_name: "Test User",
+            user_profile_pic_url: "",
+            extra_session_details: "",
+            active_session_id: "",
+            should_show_ide_discussion_new_tag: false,
+            should_show_ide_usage_guide_new_tag: false,
+          }
+
+          // Store test tokens in cookies
+          this.storeTokens("test-access-token", "test-refresh-token")
+
+          // Try to initialize session
+          console.log("IDEClient: Proceeding with test session initialization")
+          this.initializeSession(false)
+        }
+
+        setupReadyState() {
+          // Setup session URL if available
+          if (this.state.webSocketDetails && this.state.webSocketDetails.session_url) {
+            document.getElementById("session-url-section").classList.remove("hidden")
+          }
+
+          // Start inactivity timer
+          this.startInactivityTimer()
+        }
+
+        handleParentMessage(event) {
+          try {
+            const data = event.data
+
+            if (data && typeof data === "object" && data.session_id) {
+              this.state.sessionData = {
+                extra_session_details: data.extra_session_details || "",
+                session_id: data.session_id,
+                active_session_id: data.active_session_id || "",
+                access_token: data.access_token || "",
+                refresh_token: data.refresh_token || "",
+                ide_entity_type: data.ide_entity_type || "QUESTION",
+                should_show_ide_discussion_new_tag: this.convertToBoolean(data.should_show_ide_discussion_new_tag),
+                should_show_ide_usage_guide_new_tag: this.convertToBoolean(data.should_show_ide_usage_guide_new_tag),
+                user_id: data.user_id || "",
+                user_name: data.user_name || "",
+                user_profile_pic_url: data.user_profile_pic_url || "",
+              }
+
+              // Store tokens
+              if (this.state.sessionData.access_token && this.state.sessionData.refresh_token) {
+                this.storeTokens(this.state.sessionData.access_token, this.state.sessionData.refresh_token)
+              }
+
+              this.initializeSession()
+            }
+          } catch (error) {
+            console.error("Error processing postMessage:", error)
+          }
+        }
+
+        convertToBoolean(value) {
+          if (typeof value === "boolean") return value
+          if (typeof value === "string") return value.toLowerCase() === "true"
+          return false
+        }
+
+        sendMessageToParent(message, data = null) {
+          try {
+            window.parent.postMessage({ type: message, data }, "*")
+          } catch (error) {
+            console.error("Failed to send postMessage:", error)
+          }
+        }
+
+        storeTokens(accessToken, refreshToken) {
+          console.log("Storing authentication tokens in secure cookies")
+          // Store tokens in secure cookies with proper names matching the authentication system
+          this.setCookie("code-server-access-token", accessToken, 24 * 60 * 60 * 1000) // 24 hours
+          this.setCookie("code-server-refresh-token", refreshToken, 7 * 24 * 60 * 60 * 1000) // 7 days
+        }
+
+        getStoredTokens() {
+          const accessToken = this.getCookie("code-server-access-token")
+          const refreshToken = this.getCookie("code-server-refresh-token")
+          console.log("Retrieved tokens from cookies", {
+            hasAccessToken: !!accessToken,
+            hasRefreshToken: !!refreshToken,
+            accessTokenValue: accessToken ? accessToken.substring(0, 10) + "..." : null,
+            refreshTokenValue: refreshToken ? refreshToken.substring(0, 10) + "..." : null,
+          })
+          return {
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          }
+        }
+
+        setCookie(name, value, maxAgeMs) {
+          const maxAge = Math.floor(maxAgeMs / 1000) // Convert to seconds
+          const isSecure = location.protocol === "https:"
+          const secureFlag = isSecure ? "Secure" : ""
+          document.cookie = `${name}=${value}; path=/; max-age=${maxAge}; SameSite=Strict${secureFlag ? "; " + secureFlag : ""}`
+          console.log(`Cookie set: ${name} (max-age: ${maxAge}s, secure: ${isSecure})`)
+        }
+
+        getCookie(name) {
+          const value = `; ${document.cookie}`
+          const parts = value.split(`; ${name}=`)
+          if (parts.length === 2) {
+            return parts.pop().split(";").shift()
+          }
+          return null
+        }
+
+        deleteCookie(name) {
+          document.cookie = `${name}=; path=/; max-age=0; SameSite=Strict`
+          console.log(`Cookie deleted: ${name}`)
+        }
+
+        clearAuthData() {
+          console.log("Clearing all authentication data from cookies")
+          this.deleteCookie("code-server-access-token")
+          this.deleteCookie("code-server-refresh-token")
+          this.deleteCookie("ide_session_details")
+        }
+
+        validateAndCleanAuthData() {
+          console.log("Validating authentication data...")
+          const tokens = this.getStoredTokens()
+          const sessionDetails = this.getCookie("ide_session_details")
+
+          // Check if tokens are present and valid format
+          if (!tokens.access_token || !tokens.refresh_token) {
+            console.log("Invalid or missing tokens, clearing all auth data")
+            this.clearAuthData()
+            return false
+          }
+
+          // Check if tokens look like valid format (basic validation)
+          if (tokens.access_token.length < 10 || tokens.refresh_token.length < 10) {
+            console.log("Tokens appear to be invalid format, clearing all auth data")
+            this.clearAuthData()
+            return false
+          }
+
+          return true
+        }
+
+        // Debug helper method - can be called from browser console
+        setTestTokens(accessToken, refreshToken) {
+          console.log("Setting test tokens manually")
+          this.storeTokens(accessToken, refreshToken)
+          console.log("Test tokens set, retrying initialization...")
+          this.initializeApplication()
+        }
+
+        // Debug helper method to create test session data
+        setTestSession(sessionId = "test-session-123") {
+          console.log("Creating test session data")
+          const testSessionData = {
+            session_id: sessionId,
+            session_display_id: sessionId,
+            status: "READY",
+            session_url: window.location.origin + "/vscode",
+            drop_id: "test-drop-123",
+          }
+          const sessionData = encodeURIComponent(JSON.stringify(testSessionData))
+          this.setCookie("ide_session_details", sessionData, 24 * 60 * 60 * 1000)
+          console.log("Test session data set:", testSessionData)
+          this.initializeApplication()
+        }
+
+        // Skip session creation and go directly to VS Code (for testing)
+        skipToVSCode() {
+          console.log("Skipping session creation, going directly to VS Code")
+          const baseUrl = window.location.origin + window.location.pathname.replace(/\/ide-client.*$/, "")
+          const vscodeUrl = `${baseUrl}/vscode`
+          console.log("Redirecting to VS Code at:", vscodeUrl)
+          window.location.href = vscodeUrl
+        }
+
+        getApiUrl(endpoint) {
+          const baseUrl = this.API_BASE_URLS[this.environment]
+          return `${baseUrl}${endpoint}`
+        }
+
+        async makeApiCall(url, data) {
+          const tokens = this.getStoredTokens()
+
+          const response = await fetch(url, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: tokens.access_token ? `Bearer ${tokens.access_token}` : "",
+            },
+            body: JSON.stringify(data),
+          })
+
+          if (response.status === 401) {
+            console.log("Received 401 error, attempting token refresh...")
+            // Try to refresh token
+            const refreshed = await this.refreshToken()
+            if (refreshed) {
+              console.log("Token refresh successful, retrying original API call")
+              // Retry the original request
+              return this.makeApiCall(url, data)
+            } else {
+              console.log("Token refresh failed, authentication cannot be recovered")
+              const error = new Error("Authentication failed - refresh token expired")
+              error.status = 401
+              throw error
+            }
+          }
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}))
+            const error = new Error(errorData.message || "API call failed")
+            error.status = response.status
+            error.response = errorData
+            throw error
+          }
+
+          return await response.json()
+        }
+
+        async refreshToken() {
+          try {
+            const tokens = this.getStoredTokens()
+            if (!tokens.access_token || !tokens.refresh_token) {
+              console.log("No tokens available for refresh, clearing auth data")
+              this.clearAuthData()
+              return false
+            }
+
+            const refreshApiUrl = this.getApiUrl("/api/nkb_auth_v2/refresh_auth_tokens/v1/")
+            console.log("Attempting to refresh tokens at:", refreshApiUrl)
+
+            const response = await fetch(refreshApiUrl, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                access_token: tokens.access_token,
+                refresh_token: tokens.refresh_token,
+              }),
+            })
+
+            if (response.ok) {
+              const data = await response.json()
+              console.log("Token refresh successful, updating stored tokens")
+              this.storeTokens(data.access_token, data.refresh_token)
+              return true
+            }
+
+            console.log("Token refresh API failed with status:", response.status)
+            console.log("Clearing all auth data and showing NxtWave details not available")
+            this.clearAuthData()
+            this.setState("no_auth")
+            return false
+          } catch (error) {
+            console.error("Token refresh failed with error:", error)
+            console.log("Clearing all auth data and showing NxtWave details not available")
+            this.clearAuthData()
+            this.setState("no_auth")
+            return false
+          }
+        }
+
+        async initializeSession(stopExisting = false) {
+          console.log("IDEClient: Initializing session", {
+            hasSessionData: !!this.state.sessionData,
+            sessionId: this.state.sessionData?.session_id,
+            stopExisting,
+          })
+
+          // Check if we have session data, if not create minimal data for testing
+          if (!this.state.sessionData || !this.state.sessionData.session_id) {
+            console.log("IDEClient: No session data, creating minimal session data for testing")
+            this.state.sessionData = {
+              session_id: "test-session-" + Date.now(),
+              access_token: this.getCookie("code-server-access-token") || "test-token",
+              refresh_token: this.getCookie("code-server-refresh-token") || "test-refresh",
+              ide_entity_type: "QUESTION",
+              user_id: "test-user",
+              user_name: "Test User",
+              user_profile_pic_url: "",
+              extra_session_details: "",
+              active_session_id: "",
+              should_show_ide_discussion_new_tag: false,
+              should_show_ide_usage_guide_new_tag: false,
+            }
+          }
+
+          this.setState("initializing_session")
+
+          try {
+            console.log("IDEClient: Making API call to initialize session")
+            const response = await this.makeApiCall(this.getApiUrl("/api/nkb_virtual_labs/user/ccbp_ide/session/v1/"), {
+              session_display_id: this.state.sessionData.session_id,
+              stop_existing_session: stopExisting,
+            })
+
+            console.log("IDEClient: Session initialization response", response)
+            this.state.webSocketDetails = response
+
+            if (response.status === this.SESSION_STATUS.READY) {
+              console.log("IDEClient: Session is ready immediately")
+              this.setState("ready")
+            } else {
+              console.log("IDEClient: Session not ready, starting polling", {
+                status: response.status,
+                dropId: response.drop_id,
+              })
+              this.setState("polling_status")
+              this.startPolling(response.drop_id)
+            }
+          } catch (error) {
+            console.error("IDEClient: Session initialization failed", error)
+            this.handleApiError(error)
+          }
+        }
+
+        handleApiError(error) {
+          console.log("IDEClient: API error occurred", error)
+
+          if (
+            error.status === 400 &&
+            error.response &&
+            error.response.res_status === this.SESSION_STATUS.ACTIVE_SESSION_EXISTS
+          ) {
+            console.log("IDEClient: Active session exists, allowing force start")
+            this.setState("active_session_exists")
+          } else if (error.status === 401) {
+            console.log("IDEClient: Authentication error - clearing tokens and showing no_auth")
+            this.clearAuthData()
+            this.setState("no_auth")
+          } else {
+            console.log("IDEClient: Other API error, but for testing proceeding to VS Code anyway")
+            // For testing: Even on API errors, try to proceed to VS Code
+            this.navigateToVSCode()
+          }
+        }
+
+        startPolling(dropId) {
+          this.stopPolling()
+          this.state.isPolling = true
+
+          const poll = async () => {
+            try {
+              const response = await this.makeApiCall(
+                this.getApiUrl("/api/nkb_virtual_labs/user/ccbp_ide/session_status/v1/"),
+                { drop_id: dropId },
+              )
+
+              this.state.sessionStatus = response
+
+              if (this.FINAL_STATES.includes(response.status)) {
+                this.stopPolling()
+                this.handleSessionStatus(response.status)
+              }
+            } catch (error) {
+              console.error("Polling error:", error)
+              // Continue polling unless it's a critical error
+              if (error.status === 404 || error.status === 403) {
+                this.stopPolling()
+                this.handleApiError(error)
+              }
+            }
+          }
+
+          // Initial poll
+          poll()
+
+          // Set up interval
+          this.state.pollInterval = setInterval(poll, this.pollingInterval)
+        }
+
+        stopPolling() {
+          if (this.state.pollInterval) {
+            clearInterval(this.state.pollInterval)
+            this.state.pollInterval = null
+          }
+          this.state.isPolling = false
+        }
+
+        handleSessionStatus(status) {
+          switch (status) {
+            case this.SESSION_STATUS.READY:
+              this.setState("ready")
+              break
+            case this.SESSION_STATUS.STOPPED:
+              this.setState("stopped")
+              break
+            case this.SESSION_STATUS.STOPPING:
+              this.setState("stopping")
+              break
+            case this.SESSION_STATUS.UNHEALTHY:
+              this.initializeSession(true)
+              break
+          }
+        }
+
+        startInactivityTimer() {
+          this.stopInactivityTimer()
+          this.state.inactivityStartTime = Date.now()
+
+          const updateTimer = () => {
+            if (!this.state.inactivityStartTime) return
+
+            const elapsed = Date.now() - this.state.inactivityStartTime
+            const remaining = Math.max(0, this.inactivityTimeout - elapsed)
+
+            if (remaining <= 0) {
+              this.handleInactivity()
+              return
+            }
+
+            const minutes = Math.ceil(remaining / 1000 / 60)
+            const timerElement = document.getElementById("inactivity-timer")
+            if (timerElement && this.state.currentState === "ready") {
+              timerElement.textContent = `Inactivity timeout: ${minutes} minutes`
+              timerElement.classList.remove("hidden")
+            }
+          }
+
+          // Update every second
+          this.state.inactivityTimer = setInterval(updateTimer, 1000)
+
+          // Set the main timeout
+          setTimeout(() => {
+            this.handleInactivity()
+          }, this.inactivityTimeout)
+        }
+
+        stopInactivityTimer() {
+          if (this.state.inactivityTimer) {
+            clearInterval(this.state.inactivityTimer)
+            this.state.inactivityTimer = null
+          }
+          this.state.inactivityStartTime = null
+
+          const timerElement = document.getElementById("inactivity-timer")
+          if (timerElement) {
+            timerElement.classList.add("hidden")
+          }
+        }
+
+        resetInactivityTimer() {
+          if (this.state.currentState === "ready" && this.state.inactivityStartTime) {
+            this.state.inactivityStartTime = Date.now()
+          }
+        }
+
+        async handleInactivity() {
+          if (!this.state.webSocketDetails || !this.state.webSocketDetails.drop_id) return
+
+          try {
+            await this.makeApiCall(this.getApiUrl("/api/nkb_virtual_labs/user/ccbp_ide/stop_session/v1/"), {
+              drop_id: this.state.webSocketDetails.drop_id,
+              stop_reason: this.STOP_REASONS.USER_INACTIVE,
+            })
+
+            this.startPolling(this.state.webSocketDetails.drop_id)
+            this.setState("stopping")
+          } catch (error) {
+            console.error("Failed to stop session on inactivity:", error)
+          }
+        }
+
+        showStopConfirmation() {
+          const modal = this.createModal(`
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Stop IDE Session</h2>
+                        </div>
+                        <div style="text-align: center;">
+                            <div class="status-icon warning">
+                                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                </svg>
+                            </div>
+                            <p style="color: #374151; margin-bottom: 1.5rem;">Are you sure you want to stop the IDE session? This will close your development environment.</p>
+                            <div style="display: flex; gap: 0.75rem; justify-content: center;">
+                                <button class="btn btn-secondary" onclick="ideClient.closeModal()">Cancel</button>
+                                <button class="btn btn-danger" onclick="ideClient.confirmStopIDE()">Stop IDE</button>
+                            </div>
+                        </div>
+                    </div>
+                `)
+        }
+
+        async confirmStopIDE() {
+          if (!this.state.webSocketDetails || !this.state.webSocketDetails.drop_id) return
+
+          try {
+            await this.makeApiCall(this.getApiUrl("/api/nkb_virtual_labs/user/ccbp_ide/stop_session/v1/"), {
+              drop_id: this.state.webSocketDetails.drop_id,
+              stop_reason: this.STOP_REASONS.USER_FORCE_STOP,
+            })
+
+            this.startPolling(this.state.webSocketDetails.drop_id)
+            this.setState("stopping")
+            this.closeModal()
+            this.stopInactivityTimer()
+          } catch (error) {
+            console.error("Failed to stop IDE:", error)
+            this.state.error = "Failed to stop IDE session"
+            this.setState("error")
+          }
+        }
+
+        showSessionURLModal() {
+          if (!this.state.webSocketDetails || !this.state.webSocketDetails.session_url) return
+
+          const sessionUrl = this.state.webSocketDetails.session_url
+          const modal = this.createModal(`
+                    <div class="card" style="max-width: 32rem;">
+                        <div class="card-header">
+                            <h2 class="card-title">Share Session</h2>
+                            <button class="close-button" onclick="ideClient.closeModal()">
+                                <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.5rem;">Session URL</label>
+                            <input type="text" value="${sessionUrl}" readonly style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.5rem; background-color: #f9fafb; font-size: 0.875rem; font-family: monospace;" />
+                        </div>
+                        <p style="font-size: 0.875rem; color: #6b7280; margin-bottom: 1.5rem;">Share this URL to give others access to your IDE session. They will be able to view and collaborate in real-time.</p>
+                        <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+                            <button class="btn btn-secondary" onclick="ideClient.openSessionInNewTab()">Open in New Tab</button>
+                            <button class="btn btn-primary" onclick="ideClient.copySessionUrl()">
+                                <span id="copy-text">Copy URL</span>
+                            </button>
+                        </div>
+                    </div>
+                `)
+        }
+
+        async copySessionUrl() {
+          if (!this.state.webSocketDetails || !this.state.webSocketDetails.session_url) return
+
+          try {
+            await navigator.clipboard.writeText(this.state.webSocketDetails.session_url)
+            const copyText = document.getElementById("copy-text")
+            if (copyText) {
+              copyText.textContent = "Copied!"
+              setTimeout(() => {
+                copyText.textContent = "Copy URL"
+              }, 2000)
+            }
+          } catch (error) {
+            console.error("Failed to copy URL:", error)
+          }
+        }
+
+        openSessionInNewTab() {
+          if (!this.state.webSocketDetails || !this.state.webSocketDetails.session_url) return
+          window.open(this.state.webSocketDetails.session_url, "_blank", "noopener,noreferrer")
+        }
+
+        closeModal() {
+          document.getElementById("modal-container").innerHTML = ""
+        }
+      }
+
+      // Initialize the IDE Client
+      const ideClient = new IDEClient()
+    </script>
+  </body>
+</html>

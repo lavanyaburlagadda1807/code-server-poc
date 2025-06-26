@@ -1,4 +1,4 @@
-import { logger } from "@coder/logger"
+import { logger, field } from "@coder/logger"
 import cookieParser from "cookie-parser"
 import * as express from "express"
 import { promises as fs } from "fs"
@@ -19,6 +19,7 @@ import type { WebsocketRequest } from "../wsRouter"
 import * as domainProxy from "./domainProxy"
 import { errorHandler, wsErrorHandler } from "./errors"
 import * as health from "./health"
+import * as ideClient from "./ideClient"
 import * as login from "./login"
 import * as logout from "./logout"
 import * as pathProxy from "./pathProxy"
@@ -151,6 +152,10 @@ export const register = async (app: App, args: DefaultedArgs): Promise<Disposabl
   if (args.auth === AuthType.Password) {
     app.router.use("/login", login.router)
     app.router.use("/logout", logout.router)
+  } else if (args.auth === AuthType.Token) {
+    // For token auth, we need the login page to handle token authentication
+    app.router.use("/login", login.router)
+    app.router.use("/logout", logout.router)
   } else {
     app.router.all("/login", (req, res) => redirect(req, res, "/", {}))
     app.router.all("/logout", (req, res) => redirect(req, res, "/", {}))
@@ -158,13 +163,28 @@ export const register = async (app: App, args: DefaultedArgs): Promise<Disposabl
 
   app.router.use("/update", update.router)
 
+  // IDE Client route - this will be the default page
+  app.router.use("/ide-client", ideClient.router)
+
+  // Root route - redirect to ide-client by default instead of vscode
+  app.router.get("/", (req, res) => {
+    logger.info(
+      "Root route accessed, redirecting to ide-client",
+      field("userAgent", req.get("User-Agent")),
+      field("ip", req.ip),
+      field("originalUrl", req.originalUrl),
+    )
+    redirect(req, res, "ide-client", {})
+  })
+
+  // VS Code routes - these will be accessed after successful IDE session creation
+  app.router.use("/vscode", vscode.router)
+  app.wsRouter.use("/vscode", vscode.wsRouter.router)
+
   // For historic reasons we also load at /vscode because the root was replaced
   // by a plugin in v1 of Coder.  The plugin system (which was for internal use
   // only) has been removed, but leave the additional route for now.
-  for (const routePrefix of ["/vscode", "/"]) {
-    app.router.use(routePrefix, vscode.router)
-    app.wsRouter.use(routePrefix, vscode.wsRouter.router)
-  }
+  // Removing the root route handler since we want ide-client as default
 
   app.router.use(() => {
     throw new HttpError("Not Found", HttpCode.NotFound)

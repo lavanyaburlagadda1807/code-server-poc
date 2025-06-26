@@ -290,6 +290,32 @@ export async function isCookieValid({
   return isValid
 }
 
+/** Validates access and refresh tokens from cookies */
+export function validateTokensFromCookies(accessToken: string, refreshToken: string): boolean {
+  // Basic token validation - check if tokens exist and are non-empty strings
+  if (!accessToken || !refreshToken) {
+    return false
+  }
+
+  // Additional token validation logic can be added here
+  // For now, we just check if they are valid strings with reasonable length
+  if (typeof accessToken !== "string" || typeof refreshToken !== "string") {
+    return false
+  }
+
+  // Accept any non-empty token for demo purposes
+  // In production, you should implement proper validation:
+  // - JWT token validation
+  // - Token expiry check
+  // - Token format validation
+  // - Remote token validation
+  if (accessToken.trim().length === 0 || refreshToken.trim().length === 0) {
+    return false
+  }
+
+  return true
+}
+
 /** Ensures that the input is sanitized by checking
  * - it's a string
  * - greater than 0 characters

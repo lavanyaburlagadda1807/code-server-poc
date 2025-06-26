@@ -13,6 +13,7 @@ export enum Feature {
 export enum AuthType {
   Password = "password",
   None = "none",
+  Token = "token",
 }
 
 export class Optional<T> {

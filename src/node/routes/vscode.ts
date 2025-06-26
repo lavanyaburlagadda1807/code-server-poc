@@ -1,4 +1,4 @@
-import { logger } from "@coder/logger"
+import { logger, field } from "@coder/logger"
 import * as crypto from "crypto"
 import * as express from "express"
 import { promises as fs } from "fs"
@@ -121,12 +121,49 @@ router.get("/", ensureVSCodeLoaded, async (req, res, next) => {
   // Ew means the workspace was closed so clear the last folder/workspace.
   const FOLDER_OR_WORKSPACE_WAS_CLOSED = req.query.ew
 
-  if (!isAuthenticated) {
+  logger.info(
+    "VS Code route accessed",
+    field("isAuthenticated", isAuthenticated),
+    field("userAgent", req.get("User-Agent")),
+    field("ip", req.ip),
+    field("referer", req.get("Referer")),
+  )
+
+  // Check for required session details and tokens
+  const hasAccessToken = req.cookies["code-server-access-token"]
+  const hasRefreshToken = req.cookies["code-server-refresh-token"]
+  const hasSessionDetails = req.cookies["ide_session_details"]
+
+  logger.info(
+    "VS Code access validation",
+    field("hasAccessToken", !!hasAccessToken),
+    field("hasRefreshToken", !!hasRefreshToken),
+    field("hasSessionDetails", !!hasSessionDetails),
+    field("isAuthenticated", isAuthenticated),
+  )
+
+  // If user is not authenticated or missing required tokens/session details, redirect to ide-client
+  if (!isAuthenticated || !hasAccessToken || !hasRefreshToken) {
+    logger.info(
+      "Missing authentication or tokens, redirecting to IDE client",
+      field("reason", !isAuthenticated ? "not_authenticated" : "missing_tokens"),
+    )
     const to = self(req)
-    return redirect(req, res, "login", {
-      to: to !== "/" ? to : undefined,
+    return redirect(req, res, "ide-client", {
+      to: to !== "/vscode" ? to : undefined,
     })
   }
+
+  // Optional: Also check for session details (can be commented out for testing)
+  if (!hasSessionDetails) {
+    logger.info("Missing IDE session details, redirecting to IDE client")
+    const to = self(req)
+    return redirect(req, res, "ide-client", {
+      to: to !== "/vscode" ? to : undefined,
+    })
+  }
+
+  logger.info("All required details present, proceeding to VS Code interface")
 
   if (NO_FOLDER_OR_WORKSPACE_QUERY && !FOLDER_OR_WORKSPACE_WAS_CLOSED) {
     const settings = await req.settings.read()

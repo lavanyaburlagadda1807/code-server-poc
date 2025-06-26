@@ -132,6 +132,15 @@ export const authenticated = async (req: express.Request): Promise<boolean> => {
 
       return await isCookieValid(isCookieValidArgs)
     }
+    case AuthType.Token: {
+      // Token-based authentication using access and refresh tokens from cookies
+      const accessToken = sanitizeString(req.cookies[CookieKeys.AccessToken])
+      const refreshToken = sanitizeString(req.cookies[CookieKeys.RefreshToken])
+
+      // Import the token validation function
+      const { validateTokensFromCookies } = await import("./util")
+      return validateTokensFromCookies(accessToken, refreshToken)
+    }
     default: {
       throw new Error(`Unsupported auth type ${req.args.auth}`)
     }
